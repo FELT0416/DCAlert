@@ -4,8 +4,8 @@ import time
 import re
 import webbrowser
 import zroya
-import customtkinter
 import tkinter
+import customtkinter
 import os
 import threading
 import sys
@@ -24,11 +24,16 @@ class App(customtkinter.CTk):
         key = []
         user = []
         self.url = ""
+        self.check1 = 0
+        self.check2 = 0
         self.config = configparser.ConfigParser()
         with open('settings.ini', 'r', encoding='utf-8') as file:
             self.config.read_file(file)
         if self.config.has_section("General"):
             self.url = self.config["General"]["url"]
+            self.check1 = int(self.config["General"]["Checkbox1"])
+            self.check2 = int(self.config["General"]["Checkbox2"])
+
             for i in self.config.options("Keywords"):
                 key.append(str(self.config.get("Keywords", i)))
             for i in self.config.options("Username"):
@@ -97,9 +102,13 @@ class App(customtkinter.CTk):
 
         self.checkbox_1 = customtkinter.CTkCheckBox(self.checkbox_frame, text="코드 복사하기                         ", variable=self.copy)
         self.checkbox_1.grid(row=1, column=0, padx=10, pady=(10, 0), sticky="w")
+        if self.check1:
+            self.checkbox_1.select()
 
         self.checkbox_2 = customtkinter.CTkCheckBox(self.checkbox_frame, text="알림음 켜기", variable=self.sound)
         self.checkbox_2.grid(row=2, column=0, padx=10, pady=(10, 0), sticky="w")
+        if self.check2:
+            self.checkbox_2.select()
 
         self.keyword_list = tkinter.Listbox(self.keyword_frame)
         self.keyword_list.pack()
@@ -120,7 +129,8 @@ class App(customtkinter.CTk):
         self.keywords = self.keyword_list.get(0, tkinter.END)
         self.writers = self.writer_list.get(0, tkinter.END)
         self.config["General"] = {"url" : self.gall_address.get(),
-                                  "Checkbox1" : self.checkbox_1.get()}
+                                  "Checkbox1" : self.checkbox_1.get(),
+                                  "Checkbox2" : self.checkbox_2.get()}
 
         self.config["Keywords"] = {}
         self.config["Username"] = {}
