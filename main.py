@@ -27,7 +27,7 @@ class App(customtkinter.CTk):
         self.check1 = 0
         self.check2 = 0
         self.config = configparser.ConfigParser()
-        with open('settings.ini', 'r', encoding='utf-8') as file:
+        with open('settings.ini', 'r', encoding='cp949') as file:
             self.config.read_file(file)
         if self.config.has_section("General"):
             self.url = self.config["General"]["url"]
@@ -138,7 +138,7 @@ class App(customtkinter.CTk):
             self.config["Keywords"][f"Keyword{str(i)}"] = self.keywords[i]
         for i in range(len(self.writers)):
             self.config["Username"][f"Username{str(i)}"] = self.writers[i]
-        with open('settings.ini', 'w') as configfile:
+        with open('settings.ini', 'w', encoding='cp949') as configfile:
             self.config.write(configfile)
             print("saved!")
 
@@ -315,18 +315,20 @@ class GallData:
             print(self.latestIndex)
 
     def check_keywords(self):
-        if len(app.keywords) == 1:
-            for i in app.keywords:
-                if self.keyword_check(i):
-                    return True
+        check = False
+        for i in app.keywords:
+            if self.keyword_check(i):
+                check = True
+        return check
 
-        return False
 
     def check_writers(self):
+        check=False
         for i in app.writers:
             if self.keyword_check(i):
-                return True
-        return False
+                check=True
+
+        return check
 
 
 
@@ -346,20 +348,14 @@ class GallData:
                 self.get_title()
                 self.checkIndex = self.latestIndex
                 if len(app.keywords) != 0 or len(app.writers) != 0:
-                    check = False
-                    for i in app.keywords:
-                        if self.keyword_check(i):
-                            check = True
-                    for i in app.writers:
-                        if self.writer_check(i):
-                            check = True
-                    if check:
+                    check1 = self.check_keywords()
+                    check2 = self.check_writers()
+                    if check1 or check2:
                         if app.copystate == 1:
                             self.check_body()
                             code = self.check_code1()
-                            addToClipBoard(code)
                             print(self.body)
-                        notify(self.latestTitle, code, self.latestIndex)
+                        notify(self.latestTitle, "", self.latestIndex)
                 else:
                     notify(self.latestTitle, "", self.latestIndex)
 
