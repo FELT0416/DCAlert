@@ -14,10 +14,6 @@ import winsound
 
 
 
-customtkinter.set_appearance_mode("dark")
-running = False
-checkRunning = True
-
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
@@ -39,7 +35,6 @@ class App(customtkinter.CTk):
             for i in self.config.options("Username"):
                 user.append(str(self.config.get("Username", i)))
             file.close()
-
         self.title("my app")
         self.geometry("400x280")
         self.resizable(False, False)
@@ -50,9 +45,8 @@ class App(customtkinter.CTk):
         self.copy = customtkinter.IntVar()
         self.sound = customtkinter.IntVar()
         self.articleurl=""
-
-        rows=4
-        columns=3
+        rows = 4
+        columns = 3
         for i in range(rows):
             self.grid_rowconfigure(i, weight=1)
         for i in range(columns):
@@ -120,9 +114,6 @@ class App(customtkinter.CTk):
         for i in user:
             self.writer_list.insert(0,i)
 
-
-
-
     def savesettings(self):
         for i in self.config.sections():
             self.config.remove_section(i)
@@ -151,14 +142,11 @@ class App(customtkinter.CTk):
         else:
             return True
 
-
     #def open_window(self):
         #if self.error_window is None or not self.error_window.winfo_exists():
         #    self.error_window = ErrorWindow(self)
         #else:
         #    self.error_window.focus()
-
-
 
     def button_callback(self):
         print("button pressed") # For debug
@@ -167,7 +155,6 @@ class App(customtkinter.CTk):
         word=self.keyword_input.get()
         listboxes.insert(0, word)
         self.keyword_input.delete(0, customtkinter.END)
-
 
     def remove_from_listbox(self, listboxes):
         index=listboxes.curselection()
@@ -208,25 +195,6 @@ class App(customtkinter.CTk):
             a.stop()
 
 
-
-
-
-
-
-
-
-
-
-status = zroya.init(
-    app_name="DcAlert",
-    company_name="FELT",
-    product_name="DcAlert",
-    sub_product="core",
-    version="v01"
-)
-if not status:
-    print("Initialization failed")
-
 def request_session(url):
     session = requests.Session()
     session.headers.update({'User-Agent': 'Mozilla/5.0'})
@@ -238,6 +206,7 @@ def request_session(url):
 def open_url(url):
     webbrowser.open_new_tab(url)
 
+
 class GallData:
     def __init__(self):
         self.thread = threading.Thread(target=self.find_new)
@@ -247,9 +216,8 @@ class GallData:
         self.checkIndex=0
         self.soup=request_session(app.url)
         self.body=""
-
-
-        #pageNum(IndexList)
+        self.running = False
+        self.checkRunning = True
         gnum = self.soup.find_all("td", attrs={'class': 'gall_num'})
         for i in gnum:
             self.pageNum.append(i.get_text())
@@ -282,8 +250,6 @@ class GallData:
         self.pageNum1 = [int(x) for x in self.pagenum1]
         self.pageNum1.sort(reverse=True)
         self.latestIndex = str(self.pageNum1[0])
-
-
 
     def get_writer(self):
         self.writers = []
@@ -321,16 +287,12 @@ class GallData:
                 check = True
         return check
 
-
     def check_writers(self):
         check=False
         for i in app.writers:
-            if self.keyword_check(i):
-                check=True
-
+            if self.writer_check(i):
+                check = True
         return check
-
-
 
     def get_code(self):
         self.check_body()
@@ -338,10 +300,8 @@ class GallData:
         addToClipBoard(code)
         return code
 
-
     def find_new(self):
-        global checkRunning
-        while running:
+        while self.running:
             self.refresh()
             self.get_index()
             if self.latestIndex != self.checkIndex:
@@ -362,10 +322,11 @@ class GallData:
 
             print("searching")
             time.sleep(3)
-        checkRunning = True
+        self.checkRunning = True
+        if self.toggle_app.cget("text") == "정지":
+            self.toggle_app.configure(text="시작", fg_color="#1f6aa5", hover_color="#144870")
         print("exit")
         sys.exit()
-
 
     def keyword_check(self, keyword):
         if keyword in self.latestTitle:
@@ -384,7 +345,6 @@ class GallData:
         bodySoup=request_session(page_url)
         self.body = bodySoup.find("div", attrs={'class': 'write_div'}).get_text()
 
-
     def extract_code(self):
         substrings = re.split(r'\s+', self.body)
         code=""
@@ -400,20 +360,17 @@ class GallData:
         return code
 
     def start(self):
-        global checkRunning
-        while not checkRunning:
+        while not self.checkRunning:
             time.sleep(1)
 
-        global running
-        if not running:
-            checkRunning = False
-            running = True
+        if not self.running:
+            self.checkRunning = False
+            self.running = True
             self.thread.start()
 
     def stop(self):
-        global running
-        if running:
-            running = False
+        if self.running:
+            self.running = False
 
 
 def notify(title, code, index):
@@ -434,6 +391,7 @@ def addToClipBoard(text):
     command = 'echo ' + text.strip() + '| clip'
     os.system(command)
 
+
 def convert_url(input_url):
     pattern = r"https://gall.dcinside.com/(?:mgallery/)?board/lists(?:/)?\?id=(\w+)"
     match = re.match(pattern, input_url)
@@ -445,7 +403,17 @@ def convert_url(input_url):
 
 
 if __name__ == "__main__":
+    status = zroya.init(
+        app_name="DcAlert",
+        company_name="FELT",
+        product_name="DcAlert",
+        sub_product="core",
+        version="v01"
+    )
+    if not status:
+        print("Initialization failed")
+    customtkinter.set_appearance_mode("dark")
     app = App()
     appRunning = True
     app.mainloop()
-    running = False
+    sys.exit()
