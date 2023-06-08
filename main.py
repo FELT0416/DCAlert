@@ -336,6 +336,7 @@ class GallData:
         self.check_body()
         code = self.extract_code()
         addToClipBoard(code)
+        return code
 
 
     def find_new(self):
@@ -353,7 +354,7 @@ class GallData:
                     if check1 or check2:
                         if app.copystate == 1:
                             self.check_body()
-                            code = self.check_code1()
+                            code = self.get_code()
                             print(self.body)
                         notify(self.latestTitle, "", self.latestIndex)
                 else:
