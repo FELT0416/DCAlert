@@ -129,7 +129,7 @@ class App(customtkinter.CTk):
             self.config["Keywords"][f"Keyword{str(i)}"] = self.keywords[i]
         for i in range(len(self.writers)):
             self.config["Username"][f"Username{str(i)}"] = self.writers[i]
-        with open('settings.ini', 'w', encoding='utf-8') as configfile:
+        with open("settings.ini", "w", encoding="utf-8") as configfile:
             self.config.write(configfile)
             print("saved!")
 
