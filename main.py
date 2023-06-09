@@ -23,7 +23,7 @@ class App(customtkinter.CTk):
         self.check1 = 0
         self.check2 = 0
         self.config = configparser.ConfigParser()
-        with open('settings.ini', 'r', encoding='cp949') as file:
+        with open('settings.ini', 'r', encoding='utf-8') as file:
             self.config.read_file(file)
         if self.config.has_section("General"):
             self.url = self.config["General"]["url"]
