@@ -129,7 +129,7 @@ class App(customtkinter.CTk):
             self.config["Keywords"][f"Keyword{str(i)}"] = self.keywords[i]
         for i in range(len(self.writers)):
             self.config["Username"][f"Username{str(i)}"] = self.writers[i]
-        with open('settings.ini', 'w', encoding='cp949') as configfile:
+        with open('settings.ini', 'w', encoding='utf-8') as configfile:
             self.config.write(configfile)
             print("saved!")
 
@@ -299,8 +299,8 @@ class GallData(threading.Thread):
         return check
 
     def get_code(self):
-        self.check_body()
-        code = self.extract_code()
+        body = self.check_body()
+        code = self.extract_code(body)
         addToClipBoard(code)
         return code
 
@@ -347,9 +347,10 @@ class GallData(threading.Thread):
         page_url = f"{app.articleurl}{self.latestIndex}"
         bodySoup=request_session(page_url)
         self.body = bodySoup.find("div", attrs={'class': 'write_div'}).get_text()
+        return self.body
 
-    def extract_code(self):
-        substrings = re.split(r'\s+', self.body)
+    def extract_code(self, body):
+        substrings = re.split(r'\s+', body)
         code=""
         truefactor = 0
         for substring in substrings:
