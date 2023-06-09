@@ -166,26 +166,27 @@ class App(customtkinter.CTk):
     def toggleapp(self):
         global search_thread
         if self.toggle_app.cget("text") == "시작":
-            if search_thread is None or not search_thread.is_alive():
-                linkcheck = self.check_url()
-                if not linkcheck:
-                    print("url 오류")
-                    return
-                global soup
-                self.url = self.gall_address.get()
-                url = self.url
-                session = requests.Session()
-                session.headers.update({'User-Agent': 'Mozilla/5.0'})
-                page = session.get(url)
-                soup = BeautifulSoup(page.content, "html.parser")
-                self.copystate = self.copy.get()
-                self.soundstate = self.sound.get()
-                self.keywords = self.keyword_list.get(0, tkinter.END)
-                self.writers = self.writer_list.get(0, tkinter.END)
-                self.articleurl=convert_url(self.url)
-                search_thread = GallData()
-                search_thread.start()
-                self.toggle_app.configure(text="정지", fg_color="#d14b4b", hover_color="#9e2a2a")
+            while search_thread is not None and search_thread.is_alive():
+                time.sleep(1)
+            linkcheck = self.check_url()
+            if not linkcheck:
+                print("url 오류")
+                return
+            global soup
+            self.url = self.gall_address.get()
+            url = self.url
+            session = requests.Session()
+            session.headers.update({'User-Agent': 'Mozilla/5.0'})
+            page = session.get(url)
+            soup = BeautifulSoup(page.content, "html.parser")
+            self.copystate = self.copy.get()
+            self.soundstate = self.sound.get()
+            self.keywords = self.keyword_list.get(0, tkinter.END)
+            self.writers = self.writer_list.get(0, tkinter.END)
+            self.articleurl=convert_url(self.url)
+            search_thread = GallData()
+            search_thread.start()
+            self.toggle_app.configure(text="정지", fg_color="#d14b4b", hover_color="#9e2a2a")
 
         else:
             self.toggle_app.configure(text="시작", fg_color="#1f6aa5", hover_color="#144870")
