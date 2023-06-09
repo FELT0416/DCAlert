@@ -107,12 +107,12 @@ class App(customtkinter.CTk):
         self.keyword_list = tkinter.Listbox(self.keyword_frame)
         self.keyword_list.pack()
         for i in key:
-            self.keyword_list.insert(0,i)
+            self.keyword_list.insert(0, i)
 
         self.writer_list = tkinter.Listbox(self.writer_frame)
         self.writer_list.pack()
         for i in user:
-            self.writer_list.insert(0,i)
+            self.writer_list.insert(0, i)
 
     def savesettings(self):
         for i in self.config.sections():
@@ -164,35 +164,32 @@ class App(customtkinter.CTk):
             listboxes.delete(index)
 
     def toggleapp(self):
-        linkcheck = self.check_url()
-        if not linkcheck:
-            print("url 오류")
-            return
-        global monitoring_paused
-        global soup
-        self.url = self.gall_address.get()
-        url = self.url
-
-        session = requests.Session()
-        session.headers.update({'User-Agent': 'Mozilla/5.0'})
-        page = session.get(url)
-        soup = BeautifulSoup(page.content, "html.parser")
-        global a
-        a = GallData()
-        self.copystate = self.copy.get()
-        self.soundstate = self.sound.get()
-        self.keywords = self.keyword_list.get(0, tkinter.END)
-        self.writers = self.writer_list.get(0, tkinter.END)
-        self.articleurl=convert_url(self.url)
-
-
+        global search_thread
         if self.toggle_app.cget("text") == "시작":
-            self.toggle_app.configure(text="정지", fg_color="#d14b4b", hover_color="#9e2a2a")
-            a.start()
+            if search_thread is None or not search_thread.is_alive():
+                linkcheck = self.check_url()
+                if not linkcheck:
+                    print("url 오류")
+                    return
+                global soup
+                self.url = self.gall_address.get()
+                url = self.url
+                session = requests.Session()
+                session.headers.update({'User-Agent': 'Mozilla/5.0'})
+                page = session.get(url)
+                soup = BeautifulSoup(page.content, "html.parser")
+                self.copystate = self.copy.get()
+                self.soundstate = self.sound.get()
+                self.keywords = self.keyword_list.get(0, tkinter.END)
+                self.writers = self.writer_list.get(0, tkinter.END)
+                self.articleurl=convert_url(self.url)
+                search_thread = GallData()
+                search_thread.start()
+                self.toggle_app.configure(text="정지", fg_color="#d14b4b", hover_color="#9e2a2a")
 
         else:
             self.toggle_app.configure(text="시작", fg_color="#1f6aa5", hover_color="#144870")
-            a.stop()
+            search_thread.stop()
 
 
 def request_session(url):
@@ -207,16 +204,23 @@ def open_url(url):
     webbrowser.open_new_tab(url)
 
 
-class GallData:
+class GallData(threading.Thread):
+    instance_running = False
     def __init__(self):
-        self.thread = threading.Thread(target=self.find_new)
+        super().__init__()
+        if GallData.instance_running:
+            raise RuntimeError("Another instance of MyClass is already running.")
+        GallData.instance_running = True
+        self.stop_flag = threading.Event()
+        self.stop_flag.set()
         self.latestIndex=0
         self.latestTitle=""
         self.pageNum = []
         self.checkIndex=0
         self.soup=request_session(app.url)
         self.body=""
-        self.running = False
+        self.stop_flag = threading.Event()
+        self.stop_flag.set()
         self.checkRunning = True
         gnum = self.soup.find_all("td", attrs={'class': 'gall_num'})
         for i in gnum:
@@ -301,7 +305,7 @@ class GallData:
         return code
 
     def find_new(self):
-        while self.running:
+        while not self.stop_flag.is_set():
             self.refresh()
             self.get_index()
             if self.latestIndex != self.checkIndex:
@@ -322,11 +326,10 @@ class GallData:
 
             print("searching")
             time.sleep(3)
-        self.checkRunning = True
-        if self.toggle_app.cget("text") == "정지":
-            self.toggle_app.configure(text="시작", fg_color="#1f6aa5", hover_color="#144870")
-        print("exit")
-        sys.exit()
+            if self.stop_flag.is_set():
+                print("Stop")
+                GallData.instance_running = False
+                break
 
     def keyword_check(self, keyword):
         if keyword in self.latestTitle:
@@ -359,18 +362,18 @@ class GallData:
                         code = substring
         return code
 
-    def start(self):
-        while not self.checkRunning:
-            time.sleep(1)
-
-        if not self.running:
-            self.checkRunning = False
-            self.running = True
-            self.thread.start()
+    def run(self):
+        self.stop_flag.clear()
+        self.find_new()
 
     def stop(self):
-        if self.running:
-            self.running = False
+        self.stop_flag.set()
+
+
+def on_closing():
+    if search_thread is not None:
+        search_thread.stop()
+    app.destroy()
 
 
 def notify(title, code, index):
@@ -412,8 +415,9 @@ if __name__ == "__main__":
     )
     if not status:
         print("Initialization failed")
+    search_thread = None
     customtkinter.set_appearance_mode("dark")
     app = App()
     appRunning = True
+    app.protocol("WM_DELETE_WINDOW", on_closing)
     app.mainloop()
-    sys.exit()
