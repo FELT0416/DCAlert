@@ -194,11 +194,21 @@ class App(customtkinter.CTk):
 
 
 def request_session(url):
+
     session = requests.Session()
     session.headers.update({'User-Agent': 'Mozilla/5.0'})
-    page = session.get(url)
+    while True:
+        try:
+            page = session.get(url)
+            break
+        except requests.RequestException:
+            print("Internet connection lost")
+            time.sleep(5)
     soup = BeautifulSoup(page.content, "html.parser")
     return soup
+
+
+
 
 
 def open_url(url):
@@ -303,34 +313,39 @@ class GallData(threading.Thread):
         body = self.check_body()
         code = self.extract_code(body)
         addToClipBoard(code)
+        print("code")
         return code
 
     def find_new(self):
         while not self.stop_flag.is_set():
-            self.refresh()
-            self.get_index()
-            if self.latestIndex != self.checkIndex:
-                self.get_writer()
-                self.get_title()
-                self.checkIndex = self.latestIndex
-                if len(app.keywords) != 0 or len(app.writers) != 0:
-                    check1 = self.check_keywords()
-                    check2 = self.check_writers()
-                    if check1 or check2:
-                        if app.copystate == 1:
-                            self.check_body()
-                            code = self.get_code()
-                            print(self.body)
+            try:
+                print("Looping")
+                self.refresh()
+                self.get_index()
+                if self.latestIndex != self.checkIndex:
+                    self.get_writer()
+                    self.get_title()
+                    self.checkIndex = self.latestIndex
+                    if len(app.keywords) != 0 or len(app.writers) != 0:
+                        check1 = self.check_keywords()
+                        check2 = self.check_writers()
+                        if check1 or check2:
+                            if app.copystate == 1:
+                                self.check_body()
+                                code = self.get_code()
+                                print(self.body)
+                            notify(self.latestTitle, "", self.latestIndex)
+                    else:
                         notify(self.latestTitle, "", self.latestIndex)
-                else:
-                    notify(self.latestTitle, "", self.latestIndex)
 
-            print("searching")
-            time.sleep(3)
-            if self.stop_flag.is_set():
-                print("Stop")
-                GallData.instance_running = False
-                break
+                print("searching")
+                time.sleep(3)
+                if self.stop_flag.is_set():
+                    print("Stop")
+                    GallData.instance_running = False
+                    break
+            except IndexError:
+                continue
 
     def keyword_check(self, keyword):
         if keyword in self.latestTitle:
@@ -348,14 +363,15 @@ class GallData(threading.Thread):
         page_url = f"{app.articleurl}{self.latestIndex}"
         bodySoup=request_session(page_url)
         self.body = bodySoup.find("div", attrs={'class': 'write_div'}).get_text()
-        return self.body
+        body = self.body.replace("-", "")
+        return body
 
     def extract_code(self, body):
         substrings = re.split(r'\s+', body)
         code=""
         truefactor = 0
         for substring in substrings:
-            if re.match(r'^[A-Za-z0-9]{8}$', substring):
+            if re.match(r'^(?=.*\d)[A-Za-z0-9]{8}$', substring):
                 if truefactor == 0:
                     code = substring
                     truefactor = 1
@@ -370,6 +386,7 @@ class GallData(threading.Thread):
 
     def stop(self):
         self.stop_flag.set()
+        self.join()
 
 
 def on_closing():
